@@ -10,6 +10,7 @@ import threading
 import sqlite3
 
 class Servidor():
+    # para rodar com clientes de outros dispositivos tem que alterar o host para usar o IP do pc que rodar o servidor
     def __init__(self, host='localhost', port=8888, db_name='mensagens.db'):
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.bind((host, port))
@@ -17,6 +18,8 @@ class Servidor():
         self.clientes_conectados = {}
         self.conn = sqlite3.connect(db_name, check_same_thread=False)
         self.cursor = self.conn.cursor()
+        self.running = True 
+
 
     def registro_usuario(self, client_socket):
         id_usuario = str(len(self.cursor.execute('SELECT * FROM clientes').fetchall()) + 1).zfill(13)
@@ -26,7 +29,7 @@ class Servidor():
         client_socket.send(response.encode('utf-8'))
 
     def enviar_mensagem(self, src_id, dst_id, timestamp, data):
-        if dst_id not in self.clientes_conectados: #verifica se quem vai receber a msg ta online e guarda no banco 
+        if dst_id not in self.clientes_conectados: #verifica se quem vai receber a msg ta online, se não guarda no banco 
             self.cursor.execute(
                 'INSERT INTO mensagens_pendentes (src, dst, timestamp, data) VALUES (?, ?, ?, ?)',
                 (src_id, dst_id, timestamp, data)
@@ -86,6 +89,10 @@ class Servidor():
                 client_socket.close()
                 break
 
+
+    #FUNÇOES QUE VÃO LIDAR COM OS GRUPOS  
+
+    #função que deve receber o id do criador do grupo e os membros e então cria o grupo na tabela do banco
     def criar_grupo(self, client_socket, criador_id, timestamp, members):
         group_id = str(len(self.cursor.execute('SELECT * FROM grupos').fetchall()) + 1).zfill(13)
         self.cursor.execute('INSERT INTO grupos (id, criador, timestamp) VALUES (?, ?, ?)', (group_id, criador_id, timestamp))
@@ -97,13 +104,40 @@ class Servidor():
             if member in self.clientes_conectados:
                 self.clientes_conectados[member].send(response.encode('utf-8'))
         client_socket.send(response.encode('utf-8'))
+    
+    #função que lida com as mensagens enviadas dentro do grupo
+    def mensagem_grupo(self, group_id, src_id, timestamp,data):
+        self.cursor.execute('SELECT member_id FROM grupo_membros WHERE group_id = ?', (group_id,))
+        membros = self.cursor.fetchall()
+        mensagem = f'12{group_id}{src_id}{timestamp}{data}'
         
+        for membro in membros:
+            member_id = membro[0]
+            if member_id in self.clientes_conectados:
+                self.clientes_conectados[member_id].send(mensagem.encode('utf-8'))
+            else:
+                # Armazena mensagem para membros desconectados
+                self.cursor.execute(
+                    'INSERT INTO mensagens_pendentes (src, dst, timestamp, data) VALUES (?, ?, ?, ?)',
+                    (src_id, member_id, timestamp, data)
+                )
+            self.conn.commit()
+
+    #Função que conecta o servidor e cria as treandings dos usuários
     def run(self):
-        while True:
-            client_socket, addr = self.server_socket.accept()
-            print(f"Conexão recebida de {addr}")
-            cliente_logado = threading.Thread(target=self.handle_cliente, args=(client_socket,))
-            cliente_logado.start()
+        while self.running:
+            try:
+                client_socket, addr = self.server_socket.accept()
+                print(f"Conexão recebida de {addr}")
+                cliente_logado = threading.Thread(target=self.handle_cliente, args=(client_socket,))
+                cliente_logado.start()
+            except:
+                break
+
+    def stop(self): # função para desligar o servidor
+        self.running = False
+        self.server_socket.close()
+        print("Servidor desligado.")
 
 if __name__ == '__main__':
     servidor = Servidor()
