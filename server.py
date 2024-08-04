@@ -8,6 +8,8 @@ Funções do cliente
 import socket
 import threading
 import sqlite3
+from database import criar_banco_de_dados
+import os 
 
 class Servidor():
     # para rodar com clientes de outros dispositivos tem que alterar o host para usar o IP do pc que rodar o servidor
@@ -19,6 +21,7 @@ class Servidor():
         self.conn = sqlite3.connect(db_name, check_same_thread=False)
         self.cursor = self.conn.cursor()
         self.running = True 
+        print(f"Servidor conectado na porta {port} ...")
 
 
     def registro_usuario(self, client_socket):
@@ -140,5 +143,13 @@ class Servidor():
         print("Servidor desligado.")
 
 if __name__ == '__main__':
-    servidor = Servidor()
-    servidor.run()
+    db_name = 'mensagens.db'
+    if not os.path.exists(db_name):
+        criar_banco_de_dados(db_name)
+
+    servidor = Servidor(db_name=db_name)
+    try:
+        servidor.run()
+    except KeyboardInterrupt:
+        servidor.stop()
+        print("Servidor interrompido manualmente.")
