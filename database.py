@@ -21,11 +21,11 @@ def criar_banco_de_dados(db_name='mensagens.db'):
         )
         ''')
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS msg_temporaria (
-            originatario TEXT NOT NULL CHECK (length(originatario) = 13),
-            destinatario TEXT NOT NULL CHECK (length(destinatario) = 13),
+        CREATE TABLE IF NOT EXISTS mensagens_pendentes (
+            src TEXT NOT NULL CHECK (length(src) = 13),
+            dst TEXT NOT NULL CHECK (length(dst) = 13),
             timestamp INTEGER NOT NULL,
-            msg TEXT NOT NULL CHECK (length(msg) <= 218)
+            data TEXT NOT NULL CHECK (length(data) <= 218)
         )
         ''')
     cursor.execute('''
