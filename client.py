@@ -11,7 +11,7 @@ enviam um código pro servidor para que ele saiba qual função deve executar
 """
 
 import socket
-import threading
+import time
 
 class Cliente:
     def __init__(self, host='localhost', port=8888):
@@ -23,42 +23,51 @@ class Cliente:
         message = '01'
         self.client_socket.send(message.encode('utf-8'))
         response = self.client_socket.recv(1024).decode('utf-8')
-        print(f"Registro completado: {response}")
+        print(f"Registro completado: {response[2:]}")
 
     def acessar_conta(self, client_id):
         message = '03' + client_id
         self.client_socket.send(message.encode('utf-8'))
         response = self.client_socket.recv(1024).decode('utf-8')
         if response.startswith('03'):
-            src_id = response[2:15]
-            dst_id = response[15:28]
-            timestamp = response[28:38]
-            data = response[38:219]
-            self.interface_usuario(src_id, dst_id,timestamp,data)
+            self.interface_usuario(client_id)
 
-    def interface_usuario(self,src_id, dst_id,timestamp,data):
-        threading.Thread(target=self.receber_mensagens(src_id, dst_id,timestamp,data), daemon=True).start()
+    def interface_usuario(self,client_id):
         while True:
             print("\nOpções:")
-            print("1. Enviar mensagem")
-            print("2. Sair")
+            print("1 - Enviar mensagem")
+            print("2 - Mandar mensagem em grupo")
+            print("3 - Criar um grupo")
+            print("4 - Sair")
             opcao = input("Opção: ")
 
             if opcao == '1':
                 dst_id = input("Digite o ID do destinatário: ")
                 mensagem = input("Digite a mensagem: ")
-                self.enviar_mensagem(dst_id, mensagem)
+                timestamp = time.time()
+                self.enviar_mensagem(client_id, dst_id, timestamp, mensagem)
             elif opcao == '2':
+                grupo_dst = input("Digite o id do grupo: ")
+                mensagem = input("Digite a mensagem: ")
+                self.enviar_mensagem_grupo(self, grupo_dst, client_id, timestamp, mensagem)
+            elif opcao == '3': 
+                opc = True
+                membros = []
+                print("Adicione os membros do grupo um por um. Digite 'sair' para terminar.")
+                while opc: 
+                    membro = input("Digite o id do membro: ")
+                    if membro.lower() == 'sair':
+                        opc = False
+                    else:
+                        membros.append(membro)
+                self.criar_grupo(client_id, timestamp, membros)
+
+            elif opcao == '4':
                 print("Desconectando...")
                 self.client_socket.close()
                 break
             else:
                 print("Opção inválida. Tente novamente.")
-
-    def receber_mensagens(self, src_id,dst_id,timestamp,data):
-        message = f'06{src_id}{dst_id}{timestamp}{data}'
-        self.client_socket.send(message.encode('utf-8'))
-        print("Tem mensagem recebida")
 
         
     def enviar_mensagem(self, src_id, dst_id, timestamp, data):
@@ -70,9 +79,27 @@ class Cliente:
         message = f'10{criador_id}{timestamp}{"".join(members)}'
         self.client_socket.send(message.encode('utf-8'))
         response = self.client_socket.recv(1024).decode('utf-8')
-        print(f"Grupo criado: {response}")
+        print(f"Grupo criado: {response[2:]}")
 
     def enviar_mensagem_grupo(self, group_id, src_id, timestamp, data):
         message = f'11{group_id}{src_id}{timestamp}{data}'
         self.client_socket.send(message.encode('utf-8'))
         print("Mensagem de grupo enviada.")
+        
+    def receber_mensagens(self):
+        while True:
+            try:
+                mensagem = self.client_socket.recv(1024).decode('utf-8')
+                if mensagem.startswith('06'):
+                    self.exibir_mensagem(mensagem)
+            except Exception as e:
+                print(f"Erro ao receber mensagem: {e}")
+                break
+
+    def exibir_mensagem(self, mensagem):
+        # Aqui você pode formatar e exibir a mensagem da forma que quiser
+        src_id = mensagem[2:15]
+        dst_id = mensagem[15:28]
+        timestamp = mensagem[28:38]
+        data = mensagem[38:]
+        print(f"Nova mensagem de {src_id} para {dst_id} às {timestamp}: {data}")

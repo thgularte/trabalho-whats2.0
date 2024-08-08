@@ -45,20 +45,24 @@ class Servidor:
         else:
             print(f"Falha ao entregar a mensagem para {dst_id}: cliente não está online.")
 
+    def mensagens_pendentes(self, client_id):
+        with self.lock:
+            self.cursor.execute('SELECT src, timestamp, data FROM mensagens_pendentes WHERE dst = ?', (client_id,))
+            mensagens_pendentes = self.cursor.fetchall()
+            for msg in mensagens_pendentes:
+                src_id, timestamp, data = msg
+                self.entregar_mensagem(client_id, src_id, timestamp, data)
+                self.cursor.execute('DELETE FROM mensagens_pendentes WHERE src_id = ?', (src_id,))
+            self.conn.commit()
+
     def conectar_cliente(self, client_socket, client_id):
         with self.lock:
-            self.cursor.execute('SELECT * FROM clientes WHERE id = ?', (client_id,))
+            self.cursor.execute('SELECT * FROM clientes WHERE cliente_id = ?', (client_id,))
             result = self.cursor.fetchone()
         if result:
             print(f"Cliente {client_id} conectado.")
             self.clientes_conectados[client_id] = client_socket
-            with self.lock:
-                self.cursor.execute('SELECT * FROM mensagens_pendentes WHERE dst = ?', (client_id,))
-                mensagens_pendentes = self.cursor.fetchall()
-                for msg in mensagens_pendentes:
-                    self.entregar_mensagem(client_id, msg[1], msg[3], msg[4])
-                    self.cursor.execute('DELETE FROM mensagens_pendentes WHERE id = ?', (msg[0],))
-                self.conn.commit()
+            self.mensagens_pendentes(client_id)
             response = '03' + client_id
             client_socket.send(response.encode('utf-8'))
         else:
@@ -77,6 +81,7 @@ class Servidor:
                 elif message.startswith('03'):
                     client_id = message[2:15]
                     self.conectar_cliente(client_socket, client_id)
+                    self.mensagens_pendentes(client_id)
                 elif message.startswith('05'):
                     src_id = message[2:15]
                     dst_id = message[15:28]
