@@ -57,7 +57,7 @@ class Servidor:
 
     def conectar_cliente(self, client_socket, client_id):
         with self.lock:
-            self.cursor.execute('SELECT * FROM clientes WHERE cliente_id = ?', (client_id,))
+            self.cursor.execute('SELECT * FROM clientes WHERE id = ?', (client_id,))
             result = self.cursor.fetchone()
         if result:
             print(f"Cliente {client_id} conectado.")
