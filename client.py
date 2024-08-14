@@ -11,6 +11,7 @@ enviam um código pro servidor para que ele saiba qual função deve executar
 """
 
 import socket
+import threading
 import time
 
 class Cliente:
@@ -30,6 +31,7 @@ class Cliente:
         self.client_socket.send(message.encode('utf-8'))
         response = self.client_socket.recv(1024).decode('utf-8')
         if response.startswith('03'):
+            threading.Thread(target=self.receber_mensagens, daemon=True).start()
             self.interface_usuario(client_id)
 
     def interface_usuario(self,client_id):
@@ -68,8 +70,7 @@ class Cliente:
                 break
             else:
                 print("Opção inválida. Tente novamente.")
-
-        
+    
     def enviar_mensagem(self, src_id, dst_id, timestamp, data):
         message = f'05{src_id}{dst_id}{timestamp}{data}'
         self.client_socket.send(message.encode('utf-8'))
@@ -92,14 +93,15 @@ class Cliente:
                 mensagem = self.client_socket.recv(1024).decode('utf-8')
                 if mensagem.startswith('06'):
                     self.exibir_mensagem(mensagem)
+                elif mensagem.startswith('08'):
+                    print(mensagem[2:])
             except Exception as e:
                 print(f"Erro ao receber mensagem: {e}")
                 break
 
     def exibir_mensagem(self, mensagem):
-        # Aqui você pode formatar e exibir a mensagem da forma que quiser
         src_id = mensagem[2:15]
         dst_id = mensagem[15:28]
         timestamp = mensagem[28:38]
         data = mensagem[38:]
-        print(f"Nova mensagem de {src_id} para {dst_id} às {timestamp}: {data}")
+        print(f"\nNova mensagem de {src_id} para {dst_id} às {timestamp}: {data}")

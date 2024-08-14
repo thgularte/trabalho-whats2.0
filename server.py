@@ -50,11 +50,13 @@ class Servidor:
             self.cursor.execute('SELECT src, timestamp, data FROM mensagens_pendentes WHERE dst = ?', (client_id,))
             mensagens_pendentes = self.cursor.fetchall()
             for msg in mensagens_pendentes:
-                src_id, timestamp, data = msg
-                self.entregar_mensagem(client_id, src_id, timestamp, data)
-                self.cursor.execute('DELETE FROM mensagens_pendentes WHERE src_id = ?', (src_id,))
+                src, timestamp, data = msg
+                self.entregar_mensagem(client_id, src, timestamp, data)
+                self.cursor.execute('DELETE FROM mensagens_pendentes WHERE src = ?', (src))
             self.conn.commit()
-
+            client_socket = self.clientes_conectados[client_id]
+            client_socket.send('08Todas as mensagens pendentes foram entregues.'.encode('utf-8'))
+            
     def conectar_cliente(self, client_socket, client_id):
         with self.lock:
             self.cursor.execute('SELECT * FROM clientes WHERE id = ?', (client_id,))
@@ -62,7 +64,6 @@ class Servidor:
         if result:
             print(f"Cliente {client_id} conectado.")
             self.clientes_conectados[client_id] = client_socket
-            self.mensagens_pendentes(client_id)
             response = '03' + client_id
             client_socket.send(response.encode('utf-8'))
         else:
