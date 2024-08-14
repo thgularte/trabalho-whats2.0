@@ -7,4 +7,13 @@ Nomes:
     - Thaiza
 
 Passos para executar:
-    
+
+-Abrir um terminal para executar comando pytho server.py
+
+- Abrir outro terminal para executar o cliente, executar python main.py para poder conectar ou registrar um cliente
+
+
+Clientes registrados para poder usar:
+0000000000001
+0000000000002
+0000000000003
