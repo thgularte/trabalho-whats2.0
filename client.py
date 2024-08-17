@@ -52,11 +52,10 @@ class Cliente:
             print("3 - Criar um grupo")
             print("4 - Sair")
             opcao = input("Opção: ")
-
+            timestamp = int(time.time())
             if opcao == '1':
                 dst_id = input("Digite o ID do destinatário: ")
                 mensagem = input("Digite a mensagem: ")
-                timestamp = int(time.time())
                 self.enviar_mensagem(client_id, dst_id, timestamp, mensagem)
             elif opcao == '2':
                 grupo_dst = input("Digite o id do grupo: ")
@@ -91,14 +90,31 @@ class Cliente:
             self.desconectar()
 
     def criar_grupo(self, criador_id, timestamp, members):
+        # Monta a mensagem para criar o grupo
         message = f'10{criador_id}{timestamp}{"".join(members)}'
         try:
+            # Envia a mensagem ao servidor
             self.client_socket.send(message.encode('utf-8'))
+            
+            print('Criando grupo ...')
+            
+            # Recebe a resposta do servidor
             response = self.client_socket.recv(1024).decode('utf-8')
-            print(f"Grupo criado: {response[2:]}")
+            print('Resposta do servidor: ' + response)
+            
+            # Verifica se a resposta é válida
+            if response.startswith('11'):
+                group_id = response[2:15]
+                group_timestamp = int(response[15:25])
+                formatted_time = datetime.fromtimestamp(group_timestamp).strftime('%d/%m/%Y %H:%M:%S')
+                print(f'Grupo criado: {group_id} às {formatted_time}')
+            else:
+                print(f"Erro ao criar grupo, resposta inesperada do servidor: {response}")
+
         except (socket.error, ConnectionError) as e:
             print(f"Erro ao criar grupo: {e}")
             self.desconectar()
+
 
     def enviar_mensagem_grupo(self, group_id, src_id, timestamp, data):
         message = f'11{group_id}{src_id}{timestamp}{data}'

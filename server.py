@@ -61,7 +61,6 @@ class Servidor:
                     (client_id, src, timestamp)
                 )
             self.conn.commit()
-
             
     def conectar_cliente(self, client_socket, client_id):
         with self.lock:
@@ -82,7 +81,11 @@ class Servidor:
             while True:
                 message = client_socket.recv(1024).decode('utf-8')
                 if not message:
-                    break  # Se a mensagem estiver vazia, a conexão foi encerrada
+                    print("Nenhuma mensagem recebida. Encerrando conexão.")
+                    break
+
+                print(f"Mensagem recebida do cliente: {message}")
+
                 if message.startswith('01'):
                     self.registro_usuario(client_socket)
                 elif message.startswith('03'):
@@ -95,6 +98,12 @@ class Servidor:
                     timestamp = message[28:38]
                     data = message[38:]
                     self.enviar_mensagem(src_id, dst_id, timestamp, data)
+                elif message.startswith('10'):
+                    src_id = message[2:15]
+                    timestamp = message[15:25]
+                    members = message[25:]
+                    self.criar_grupo(client_socket, src_id, timestamp, members)
+
         except Exception as e:
             print(f"Erro ao lidar com o cliente: {e}")
         finally:
@@ -106,16 +115,20 @@ class Servidor:
                 print(f"Cliente {client_id} desconectado.")
 
     def criar_grupo(self, client_socket, criador_id, timestamp, members):
+        member_ids = [members[i:i+13] for i in range(0, len(members), 13)]
         with self.lock:
+            # Criar o grupo com um novo ID
             group_id = str(len(self.cursor.execute('SELECT * FROM grupos').fetchall()) + 1).zfill(13)
             self.cursor.execute('INSERT INTO grupos (id, criador, timestamp) VALUES (?, ?, ?)', (group_id, criador_id, timestamp))
-            for member in members:
-                self.cursor.execute('INSERT INTO grupo_membros (group_id, member_id) VALUES (?, ?)', (group_id, member))
+            
+            # Adicionar o criador como membro do grupo
+            self.cursor.execute('INSERT INTO grupo_membros (group_id, member_id) VALUES (?, ?)', (group_id, criador_id))
+            
+            # Adicionar os outros membros ao grupo
+            for member_id in member_ids:
+                self.cursor.execute('INSERT INTO grupo_membros (group_id, member_id) VALUES (?, ?)', (group_id, member_id))
             self.conn.commit()
-        response = '11' + group_id + timestamp + ''.join(members)
-        for member in members:
-            if member in self.clientes_conectados:
-                self.clientes_conectados[member].send(response.encode('utf-8'))
+        response = str('11' + group_id + timestamp + members)
         client_socket.send(response.encode('utf-8'))
 
     def mensagem_grupo(self, group_id, src_id, timestamp, data):
