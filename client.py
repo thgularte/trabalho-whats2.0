@@ -90,19 +90,14 @@ class Cliente:
             self.desconectar()
 
     def criar_grupo(self, criador_id, timestamp, members):
-        # Monta a mensagem para criar o grupo
         message = f'10{criador_id}{timestamp}{"".join(members)}'
         try:
             # Envia a mensagem ao servidor
             self.client_socket.send(message.encode('utf-8'))
             
             print('Criando grupo ...')
-            
-            # Recebe a resposta do servidor
             response = self.client_socket.recv(1024).decode('utf-8')
             print('Resposta do servidor: ' + response)
-            
-            # Verifica se a resposta é válida
             if response.startswith('11'):
                 group_id = response[2:15]
                 group_timestamp = int(response[15:25])
