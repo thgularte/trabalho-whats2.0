@@ -117,18 +117,14 @@ class Servidor:
     def criar_grupo(self, client_socket, criador_id, timestamp, members):
         member_ids = [members[i:i+13] for i in range(0, len(members), 13)]
         with self.lock:
-            # Criar o grupo com um novo ID
             group_id = str(len(self.cursor.execute('SELECT * FROM grupos').fetchall()) + 1).zfill(13)
             self.cursor.execute('INSERT INTO grupos (id, criador, timestamp) VALUES (?, ?, ?)', (group_id, criador_id, timestamp))
-            
-            # Adicionar o criador como membro do grupo
             self.cursor.execute('INSERT INTO grupo_membros (group_id, member_id) VALUES (?, ?)', (group_id, criador_id))
-            
-            # Adicionar os outros membros ao grupo
             for member_id in member_ids:
                 self.cursor.execute('INSERT INTO grupo_membros (group_id, member_id) VALUES (?, ?)', (group_id, member_id))
             self.conn.commit()
-        response = str('11' + group_id + timestamp + members)
+        response = '11' + group_id + timestamp + members
+        print('RESPONSE SERVER:' + response)
         client_socket.send(response.encode('utf-8'))
 
     def mensagem_grupo(self, group_id, src_id, timestamp, data):
