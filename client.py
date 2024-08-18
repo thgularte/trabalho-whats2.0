@@ -37,53 +37,22 @@ class Cliente:
         try:
             self.client_socket.send(message.encode('utf-8'))
             response = self.client_socket.recv(1024).decode('utf-8')
-            if response.startswith('03'):
+            if response.startswith('04'):
                 threading.Thread(target=self.receber_mensagens, daemon=True).start()
+                print(f' -=-=-= Usuário {response[2:]} conectado =-=-=-')
                 self.interface_usuario(client_id)
         except (socket.error, ConnectionError) as e:
             print(f"Erro ao acessar conta: {e}")
             self.desconectar()
 
-    def interface_usuario(self, client_id):
-        while True:
-            print("\nOpções:")
-            print("1 - Enviar mensagem")
-            print("2 - Mandar mensagem em grupo")
-            print("3 - Criar um grupo")
-            print("4 - Sair")
-            opcao = input("Opção: ")
-            timestamp = int(time.time())
-            if opcao == '1':
-                dst_id = input("Digite o ID do destinatário: ")
-                mensagem = input("Digite a mensagem: ")
-                self.enviar_mensagem(client_id, dst_id, timestamp, mensagem)
-            elif opcao == '2':
-                grupo_dst = input("Digite o id do grupo: ")
-                mensagem = input("Digite a mensagem: ")
-                self.enviar_mensagem_grupo(grupo_dst, client_id, timestamp, mensagem)
-            elif opcao == '3': 
-                opc = True
-                membros = []
-                print("Adicione os membros do grupo um por um. Digite 'sair' para terminar.")
-                while opc: 
-                    membro = input("Digite o id do membro: ")
-                    if membro.lower() == 'sair':
-                        opc = False
-                    else:
-                        membros.append(membro)
-                self.criar_grupo(client_id, timestamp, membros)
-
-            elif opcao == '4':
-                print("Desconectando...")
-                self.desconectar()
-                break
-            else:
-                print("Opção inválida. Tente novamente.")
-    
     def enviar_mensagem(self, src_id, dst_id, timestamp, data):
         message = f'05{src_id}{dst_id}{timestamp}{data}'
         try:
             self.client_socket.send(message.encode('utf-8'))
+            response = self.client_socket.recv(1024).decode('utf-8')
+            print('Resposta: ' + response)
+            if(response.startswith('06')):
+                print(f' -=-= Mensagem enviada para {dst_id} às {timestamp} =-=-')
             print("Mensagem enviada.")
         except (socket.error, ConnectionError) as e:
             print(f"Erro ao enviar mensagem: {e}")
@@ -94,12 +63,14 @@ class Cliente:
         message = f'10{criador_id}{timestamp}{"".join(members)}'
         try:
             # Envia a mensagem ao servidor
+            print('TO AQUI PORRA')
             self.client_socket.send(message.encode('utf-8'))
             
             print('Criando grupo ...')
             
             # Recebe a resposta do servidor
             response = self.client_socket.recv(1024).decode('utf-8')
+            print('AQUI NÃO PORRAAAAAAAAAAAA')
             print('Resposta do servidor: ' + response)
             
             # Verifica se a resposta é válida
@@ -152,6 +123,42 @@ class Cliente:
         data_formatada = datetime.fromtimestamp(int(timestamp)).strftime('%d/%m/%Y %H:%M:%S')
         print(f"\n\n\nNova mensagem de {src_id} para {dst_id} às {data_formatada}. \n => {data}")
 
+    def interface_usuario(self, client_id):
+        while True:
+            print("\nOpções:")
+            print("1 - Enviar mensagem")
+            print("2 - Mandar mensagem em grupo")
+            print("3 - Criar um grupo")
+            print("4 - Sair")
+            opcao = input("Opção: ")
+            timestamp = int(time.time())
+            if opcao == '1':
+                dst_id = input("Digite o ID do destinatário: ")
+                mensagem = input("Digite a mensagem: ")
+                self.enviar_mensagem(client_id, dst_id, timestamp, mensagem)
+            elif opcao == '2':
+                grupo_dst = input("Digite o id do grupo: ")
+                mensagem = input("Digite a mensagem: ")
+                self.enviar_mensagem_grupo(grupo_dst, client_id, timestamp, mensagem)
+            elif opcao == '3': 
+                opc = True
+                membros = []
+                print("Adicione os membros do grupo um por um. Digite 'sair' para terminar.")
+                while opc: 
+                    membro = input("Digite o id do membro: ")
+                    if membro.lower() == 'sair':
+                        opc = False
+                    else:
+                        membros.append(membro)
+                self.criar_grupo(client_id, timestamp, membros)
+
+            elif opcao == '4':
+                print("Desconectando...")
+                self.desconectar()
+                break
+            else:
+                print("Opção inválida. Tente novamente.")
+    
     def desconectar(self):
         self.conectado = False
         try:

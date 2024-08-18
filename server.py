@@ -69,7 +69,8 @@ class Servidor:
         if result:
             print(f"Cliente {client_id} conectado.")
             self.clientes_conectados[client_id] = client_socket
-            response = '03' + client_id
+            self.mensagens_pendentes(client_id)
+            response = '04' + client_id
             client_socket.send(response.encode('utf-8'))
         else:
             print(f"Cliente {client_id} não encontrado.")
@@ -91,7 +92,6 @@ class Servidor:
                 elif message.startswith('03'):
                     client_id = message[2:15]
                     self.conectar_cliente(client_socket, client_id)
-                    self.mensagens_pendentes(client_id)
                 elif message.startswith('05'):
                     src_id = message[2:15]
                     dst_id = message[15:28]
