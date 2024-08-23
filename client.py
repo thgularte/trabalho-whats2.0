@@ -111,7 +111,7 @@ class Cliente:
         message = f'05{src_id}{dst_id}{timestamp}{data}'
         try:
             self.client_socket.send(message.encode('utf-8'))
-            print("Mensagem enviada.")
+            print(f"Mensagem enviada.")
         except (socket.error, ConnectionError) as e:
             print(f"Erro ao enviar mensagem: {e}")
             self.desconectar()

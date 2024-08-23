@@ -4,7 +4,7 @@ import time
 def cliente_interface():
     cliente = Cliente()
     while True:
-        time.sleep(1.5)  # Adiciona um atraso de 3 segundos antes de exibir as opções
+        time.sleep(1)  # Adiciona um atraso de 3 segundos antes de exibir as opções
         print("Selecione uma opção:")
         print("1. Registrar usuário")
         print("2. Conectar cliente")
