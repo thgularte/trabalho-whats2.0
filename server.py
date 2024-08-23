@@ -16,6 +16,44 @@ class Servidor:
         self.lock = threading.Lock()  
         print(f"Servidor conectado na porta {port} ...")
 
+    def handle_cliente(self, client_socket):
+        client_id = None
+        try:
+            while True:
+                message = client_socket.recv(1024).decode('utf-8')
+                if not message:
+                    print("Nenhuma mensagem recebida. Encerrando conexão.")
+                    break
+
+                print(f"Mensagem recebida do cliente: {message}")
+
+                if message.startswith('01'):
+                    self.registro_usuario(client_socket)
+                elif message.startswith('03'):
+                    client_id = message[2:15]
+                    self.conectar_cliente(client_socket, client_id)
+                elif message.startswith('05'):
+                    src_id = message[2:15]
+                    dst_id = message[15:28]
+                    timestamp = message[28:38]
+                    data = message[38:]
+                    self.enviar_mensagem(src_id, dst_id, timestamp, data)
+                elif message.startswith('10'):
+                    src_id = message[2:15]
+                    timestamp = message[15:25]
+                    members = message[25:]
+                    self.criar_grupo(client_socket, src_id, timestamp, members)
+
+        except Exception as e:
+            print(f"Erro ao lidar com o cliente: {e}")
+        finally:
+            client_socket.close()
+            if client_id:
+                with self.lock:
+                    if client_id in self.clientes_conectados:
+                        del self.clientes_conectados[client_id]
+                print(f"Cliente {client_id} desconectado.")
+
     def registro_usuario(self, client_socket):
         with self.lock:
             id_usuario = str(len(self.cursor.execute('SELECT * FROM clientes').fetchall()) + 1).zfill(13)
@@ -23,6 +61,21 @@ class Servidor:
             self.conn.commit()
         response = '02' + id_usuario
         client_socket.send(response.encode('utf-8'))
+        print(f'Usuário {response[2:]} criado com sucesso!')
+
+    def conectar_cliente(self, client_socket, client_id):
+        with self.lock:
+            self.cursor.execute('SELECT * FROM clientes WHERE id = ?', (client_id,))
+            result = self.cursor.fetchone()
+        if result:
+            print(f"Cliente {client_id} conectado.")
+            self.clientes_conectados[client_id] = client_socket
+            self.mensagens_pendentes(client_id)
+            response = '04' + client_id
+            client_socket.send(response.encode('utf-8'))
+        else:
+            print(f"Cliente {client_id} não encontrado.")
+            client_socket.close()    
 
     def enviar_mensagem(self, src_id, dst_id, timestamp, data):
         with self.lock:
@@ -61,58 +114,6 @@ class Servidor:
                     (client_id, src, timestamp)
                 )
             self.conn.commit()
-            
-    def conectar_cliente(self, client_socket, client_id):
-        with self.lock:
-            self.cursor.execute('SELECT * FROM clientes WHERE id = ?', (client_id,))
-            result = self.cursor.fetchone()
-        if result:
-            print(f"Cliente {client_id} conectado.")
-            self.clientes_conectados[client_id] = client_socket
-            self.mensagens_pendentes(client_id)
-            response = '04' + client_id
-            client_socket.send(response.encode('utf-8'))
-        else:
-            print(f"Cliente {client_id} não encontrado.")
-            client_socket.close()
-
-    def handle_cliente(self, client_socket):
-        client_id = None
-        try:
-            while True:
-                message = client_socket.recv(1024).decode('utf-8')
-                if not message:
-                    print("Nenhuma mensagem recebida. Encerrando conexão.")
-                    break
-
-                print(f"Mensagem recebida do cliente: {message}")
-
-                if message.startswith('01'):
-                    self.registro_usuario(client_socket)
-                elif message.startswith('03'):
-                    client_id = message[2:15]
-                    self.conectar_cliente(client_socket, client_id)
-                elif message.startswith('05'):
-                    src_id = message[2:15]
-                    dst_id = message[15:28]
-                    timestamp = message[28:38]
-                    data = message[38:]
-                    self.enviar_mensagem(src_id, dst_id, timestamp, data)
-                elif message.startswith('10'):
-                    src_id = message[2:15]
-                    timestamp = message[15:25]
-                    members = message[25:]
-                    self.criar_grupo(client_socket, src_id, timestamp, members)
-
-        except Exception as e:
-            print(f"Erro ao lidar com o cliente: {e}")
-        finally:
-            client_socket.close()
-            if client_id:
-                with self.lock:
-                    if client_id in self.clientes_conectados:
-                        del self.clientes_conectados[client_id]
-                print(f"Cliente {client_id} desconectado.")
 
     def criar_grupo(self, client_socket, criador_id, timestamp, members):
         member_ids = [members[i:i+13] for i in range(0, len(members), 13)]
