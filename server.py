@@ -43,6 +43,12 @@ class Servidor:
                     timestamp = message[15:25]
                     members = message[25:]
                     self.criar_grupo(client_socket, src_id, timestamp, members)
+                elif message.startswith('12'):
+                    group_id = message[2:15]
+                    src_id = message[15:28]
+                    timestamp = message[28:38]
+                    data = message[38:]
+                    self.mensagem_grupo(group_id,src_id,timestamp,data)
 
         except Exception as e:
             print(f"Erro ao lidar com o cliente: {e}")
@@ -136,11 +142,12 @@ class Servidor:
         with self.lock:
             self.cursor.execute('SELECT member_id FROM grupo_membros WHERE group_id = ?', (group_id,))
             membros = self.cursor.fetchall()
-        mensagem = f'12{group_id}{src_id}{timestamp}{data}'
+        mensagem = f'13{group_id}{src_id}{timestamp}{data}'
         for membro in membros:
             member_id = membro[0]
             if member_id in self.clientes_conectados:
                 self.clientes_conectados[member_id].send(mensagem.encode('utf-8'))
+                self.enviar_mensagem(src_id,member_id,timestamp,data)
             else:
                 with self.lock:
                     self.cursor.execute(

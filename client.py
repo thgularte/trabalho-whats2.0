@@ -97,7 +97,8 @@ class Cliente:
             group_timestamp = int(mensagem[15:25])
             formatted_time = datetime.fromtimestamp(group_timestamp).strftime('%d/%m/%Y %H:%M:%S')
             print(f'Grupo criado: {group_id} às {formatted_time}')
-
+        elif mensagem.startswith('13'):
+            print('Mensagem enviada no grupo.')
 
     def registra_usuario(self):
         message = '01'
@@ -128,10 +129,9 @@ class Cliente:
 
 
     def enviar_mensagem_grupo(self, group_id, src_id, timestamp, data):
-        message = f'11{group_id}{src_id}{timestamp}{data}'
+        message = f'12{group_id}{src_id}{timestamp}{data}'
         try:
             self.client_socket.send(message.encode('utf-8'))
-            print("Mensagem de grupo enviada.")
         except (socket.error, ConnectionError) as e:
             print(f"Erro ao enviar mensagem de grupo: {e}")
             self.desconectar()
