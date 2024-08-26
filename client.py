@@ -86,19 +86,24 @@ class Cliente:
         if mensagem.startswith('02'):
             print(f'Usuário cadastrado seu ID: {mensagem[2:]}')
         elif mensagem.startswith('06'):
+            print(f'\n -= Você recebeu uma nova mensagem. =- ')
             self.exibir_mensagem(mensagem)
+        elif mensagem.startswith('07'):
+            print('Sua mensagem foi entregue para o destinátario.')
         elif mensagem.startswith('09'):
             dst = mensagem[2:15]
             timestamp = int(mensagem[15:25])
             data_formatada = datetime.fromtimestamp(timestamp).strftime('%d/%m/%Y %H:%M:%S')
-            print(f"Usuário {dst} visualizou sua mensagem enviada as {data_formatada}.")
+            print(f" -= Usuário {dst} visualizou sua mensagem às {data_formatada}. =- ")
         elif mensagem.startswith('11'):
             group_id = mensagem[2:15]
             group_timestamp = int(mensagem[15:25])
             formatted_time = datetime.fromtimestamp(group_timestamp).strftime('%d/%m/%Y %H:%M:%S')
-            print(f'Grupo criado: {group_id} às {formatted_time}')
+            print(f'\nGrupo criado: {group_id} às {formatted_time}')
         elif mensagem.startswith('13'):
-            print('Mensagem enviada no grupo.')
+            print('\nMensagem enviada no grupo.')
+        elif mensagem.startswith('14'):
+            print(f'\nVocê foi adicionado ao grupo: {mensagem[2:15]}')
 
     def registra_usuario(self):
         message = '01'

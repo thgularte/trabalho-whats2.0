@@ -137,6 +137,11 @@ class Servidor:
             self.conn.commit()
         response = str('11' + group_id + timestamp + members)
         client_socket.send(response.encode('utf-8'))
+        for member_id in member_ids:
+            if member_id in self.clientes_conectados:
+                notification = f'14{group_id}{timestamp}'
+                self.clientes_conectados[member_id].send(notification.encode('utf-8'))
+                print(f'Notificação de grupo enviada para {member_id}')
 
     def mensagem_grupo(self, group_id, src_id, timestamp, data):
         with self.lock:
@@ -147,7 +152,8 @@ class Servidor:
             member_id = membro[0]
             if member_id in self.clientes_conectados:
                 self.clientes_conectados[member_id].send(mensagem.encode('utf-8'))
-                self.enviar_mensagem(src_id,member_id,timestamp,data)
+                if(member_id != src_id):
+                    self.enviar_mensagem(src_id,member_id,timestamp,data)
             else:
                 with self.lock:
                     self.cursor.execute(
