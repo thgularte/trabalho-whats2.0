@@ -7,13 +7,11 @@ Nomes:
     - Thaiza
 
 Passos para executar:
-
--Abrir um terminal para executar comando pytho server.py
-
-- Abrir outro terminal para executar o cliente, executar python main.py para poder conectar ou registrar um cliente
+- Execute o servidor (no arquivo server.py) de o comando python server.py no seu terminal
+- Para abrir o clientes execute em quantos terminais quiser o comando python main.py para poder acessar com um novo cliente
 
 
-Clientes registrados para poder usar:
+Clientes registrados para poder usar(alguns cliente previamente cadastrados no banco, os ids segue essa sequencia):
 0000000000001
 0000000000002
 0000000000003
