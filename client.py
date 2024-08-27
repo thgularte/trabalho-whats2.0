@@ -12,6 +12,7 @@ enviam um código pro servidor para que ele saiba qual função deve executar
 
 from datetime import datetime
 import socket
+import sqlite3
 import threading
 import time
 
@@ -31,6 +32,8 @@ class Cliente:
             print("2 - Mandar mensagem em grupo")
             print("3 - Criar um grupo")
             print("4 - Sair")
+            print('5 - Contatos')
+            print('6 - Adicionar contato')
             opcao = input("Opção: ")
             timestamp = int(time.time())
             if opcao == '1':
@@ -57,6 +60,11 @@ class Cliente:
                 print("Desconectando...")
                 self.desconectar()
                 break
+            elif opcao == '5':
+                self.listar_contatos(client_id)
+            elif opcao == '6':
+                id_contato = input('Digite o numero do contato: ')
+                self.add_contato(client_id, id_contato)
             else:
                 print("Opção inválida. Tente novamente.")
 
@@ -150,7 +158,59 @@ class Cliente:
         data_formatada = datetime.fromtimestamp(int(timestamp)).strftime('%d/%m/%Y %H:%M:%S')
         print(f"\n\n\nNova mensagem de {src_id} para {dst_id} às {data_formatada}. \n => {data}")
 
- 
+    def listar_contatos(self, client_id, db_name='mensagens.db'):
+        if len(client_id) != 13:
+            raise ValueError("O ID do cliente deve ter exatamente 13 caracteres.")
+        
+        conn = sqlite3.connect(db_name)
+        cursor = conn.cursor()
+
+        try:
+            # Executa a consulta para listar todos os contatos do cliente
+            cursor.execute('''
+                SELECT contato_id
+                FROM contatos
+                WHERE cliente_id = ?
+            ''', (client_id,))
+            
+            # Obtém todos os resultados da consulta
+            contatos = cursor.fetchall()
+            
+            # Formata os resultados como uma lista de IDs de contatos
+            contatos_lista = [contato[0] for contato in contatos]
+            print(contatos_lista)
+
+        except Exception as e:
+            print(f"Erro ao listar contatos: {e}")
+            return []
+
+        finally:
+            conn.close()
+    
+    def add_contato(self, client_id, id_contato,db_name='mensagens.db'):
+        if len(client_id) != 13 or len(id_contato) != 13:
+            raise ValueError("Os IDs dos clientes devem ter exatamente 13 caracteres.")
+    
+        conn = sqlite3.connect(db_name)
+        cursor = conn.cursor()
+
+        try:
+            # Insere o contato na tabela contatos
+            cursor.execute('''
+                INSERT INTO contatos (cliente_id, contato_id)
+                VALUES (?, ?)
+            ''', (client_id, id_contato))
+            
+            conn.commit()
+            print(f"Contato {id_contato} adicionado com sucesso para o cliente {client_id}.")
+            
+        except sqlite3.IntegrityError as e:
+            print(f"Erro de integridade ao adicionar contato: {e}")
+        except Exception as e:
+            print(f"Erro ao adicionar contato: {e}")
+        finally:
+            conn.close()
+
     def desconectar(self):
         self.conectado = False
         try:
