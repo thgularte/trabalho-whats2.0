@@ -1,6 +1,7 @@
 import socket
 import threading
 import sqlite3
+import time
 from database import criar_banco_de_dados
 import os
 
@@ -94,6 +95,10 @@ class Servidor:
                 print(f"Mensagem de {src_id} para {dst_id} armazenada.")
             else:
                 self.entregar_mensagem(dst_id, src_id, timestamp, data)
+                client_dst = self.clientes_conectados.get(src_id)
+                ts = int(time.time())
+                if client_dst:
+                    client_dst.send(f'09{dst_id}{ts}'.encode('utf-8'))
 
     def entregar_mensagem(self, dst_id, src_id, timestamp, data):
         if dst_id in self.clientes_conectados:
@@ -105,16 +110,18 @@ class Servidor:
             print(f"Falha ao entregar a mensagem para {dst_id}: cliente não está online.")
 
     def mensagens_pendentes(self, client_id):
-        with self.lock:
+         with self.lock:
             self.cursor.execute('SELECT src, dst, timestamp, data FROM mensagens_pendentes WHERE dst = ?', (client_id,))
             mensagens_pendentes = self.cursor.fetchall()
             for msg in mensagens_pendentes:
                 src, dst, timestamp, data = msg
+                print(f"Mensagem pendente de {src} para {dst} com timestamp {timestamp}: {data}")
                 self.entregar_mensagem(client_id, src, timestamp, data)
-                
-                client_socket = self.clientes_conectados.get(client_id)
-                if client_socket:
-                    client_socket.send(f'09{dst}{timestamp}'.encode('utf-8'))
+                client_dst = self.clientes_conectados.get(src)
+                ts = int(time.time())
+                if client_dst:
+                    client_dst.send(f'09{dst}{timestamp}'.encode('utf-8'))
+                    
                 self.cursor.execute(
                     'DELETE FROM mensagens_pendentes WHERE dst = ? AND src = ? AND timestamp = ?', 
                     (client_id, src, timestamp)
