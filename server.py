@@ -120,7 +120,7 @@ class Servidor:
                 client_dst = self.clientes_conectados.get(src)
                 ts = int(time.time())
                 if client_dst:
-                    client_dst.send(f'09{dst}{timestamp}'.encode('utf-8'))
+                    client_dst.send(f'09{dst}{ts}'.encode('utf-8'))
                     
                 self.cursor.execute(
                     'DELETE FROM mensagens_pendentes WHERE dst = ? AND src = ? AND timestamp = ?', 
