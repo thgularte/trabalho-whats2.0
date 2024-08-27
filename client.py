@@ -16,6 +16,9 @@ import sqlite3
 import threading
 import time
 
+#Classe com as funcionalidades do cliente
+#Para lidar com as resposta do servidor todos os clientes conectados ficam
+#esperando sempre alguma resposta do servidor para poder lidar com ela
 class Cliente:
     def __init__(self, host='localhost', port=8888):
         self.server_address = (host, port)
@@ -25,6 +28,7 @@ class Cliente:
         self.receber_mensagens_thread_started = False
         threading.Thread(target=self.receber_mensagens, daemon=True).start()
 
+    #Função que lida com a interface pro usuario selecionar o que quer fazer
     def interface_usuario(self, client_id):
         while True:
             print("\nOpções:")
@@ -78,6 +82,7 @@ class Cliente:
             print(f"Erro ao acessar conta: {e}")
             self.desconectar()
 
+    #Função que faz o cliente ficar escutando o servidor
     def receber_mensagens(self):
         while self.conectado:
             try:
@@ -90,6 +95,7 @@ class Cliente:
                 self.desconectar()
                 break
 
+    #Função que lida com as respostas do servidor
     def processar_mensagem(self, mensagem):
         if mensagem.startswith('02'):
             print(f'Usuário cadastrado seu ID: {mensagem[2:]}')
@@ -149,7 +155,7 @@ class Cliente:
             print(f"Erro ao enviar mensagem de grupo: {e}")
             self.desconectar()
         
-   
+   #Função exibir as msgs pro cliente
     def exibir_mensagem(self, mensagem):
         src_id = mensagem[2:15]
         dst_id = mensagem[15:28]

@@ -5,6 +5,8 @@ import time
 from database import criar_banco_de_dados
 import os
 
+#Classe que lida com as funções do servidor que vão ser acionadas pelos clientes
+#Servidor ficar sempre esperando requisições e envia retorno aos clientes
 class Servidor:
     def __init__(self, host='localhost', port=8888, db_name='mensagens.db'):
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -17,6 +19,7 @@ class Servidor:
         self.lock = threading.Lock()  
         print(f"Servidor conectado na porta {port} ...")
 
+    #Função para lidar com as requisições dos clientes
     def handle_cliente(self, client_socket):
         client_id = None
         try:
@@ -69,7 +72,7 @@ class Servidor:
         response = '02' + id_usuario
         client_socket.send(response.encode('utf-8'))
         print(f'Usuário {response[2:]} criado com sucesso!')
-
+    #Função que conecta cada cliente, e aciona 1 threading para cada 1
     def conectar_cliente(self, client_socket, client_id):
         with self.lock:
             self.cursor.execute('SELECT * FROM clientes WHERE id = ?', (client_id,))
@@ -108,7 +111,7 @@ class Servidor:
             print(f"Mensagem entregue para {dst_id}")
         else:
             print(f"Falha ao entregar a mensagem para {dst_id}: cliente não está online.")
-
+    #Função para salvar as msgs de que ta off
     def mensagens_pendentes(self, client_id):
          with self.lock:
             self.cursor.execute('SELECT src, dst, timestamp, data FROM mensagens_pendentes WHERE dst = ?', (client_id,))
@@ -149,7 +152,7 @@ class Servidor:
                 notification = f'14{group_id}{timestamp}'
                 self.clientes_conectados[member_id].send(notification.encode('utf-8'))
                 print(f'Notificação de grupo enviada para {member_id}')
-
+    #Função que lida com a troca de msg dentro dos grupos | E como manda msg só para quem ta no grupo
     def mensagem_grupo(self, group_id, src_id, timestamp, data):
         with self.lock:
             self.cursor.execute('SELECT member_id FROM grupo_membros WHERE group_id = ?', (group_id,))

@@ -7,6 +7,7 @@ Nomes:
     - Thaiza
 
 Passos para executar:
+- Ter pelo menos python3.9 instalado
 - Execute o servidor (no arquivo server.py) de o comando python server.py no seu terminal
 - Para abrir o clientes execute em quantos terminais quiser o comando python main.py para poder acessar com um novo cliente
 
